@@ -1,4 +1,4 @@
-module github.com/mattermost/mattermost-plugin-profanity-filter/server
+module github.com/ZeusWPI/mattermost-great-filter/server
 
 go 1.12
 

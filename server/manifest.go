@@ -4,6 +4,6 @@ var manifest = struct {
 	Id      string
 	Version string
 }{
-	Id:      "mattermost-profanity-filter",
+	Id:      "mattermost-great-filter",
 	Version: "0.1.1",
 }

@@ -10,10 +10,9 @@ import (
 
 type Plugin struct {
 	plugin.MattermostPlugin
-	badWords map[string]bool
 
-	RejectPosts     bool
-	CensorCharacter string
+	Channel     string
+	AllowedUsers string
 }
 
 func main() {
@@ -21,11 +20,6 @@ func main() {
 }
 
 func (p *Plugin) OnActivate() error {
-	p.badWords = make(map[string]bool, len(badWords))
-	for _, word := range badWords {
-		p.badWords[word] = true
-	}
-
 	return nil
 }
 
@@ -36,25 +30,39 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (p *Plugin) WordIsBad(word string) bool {
-	_, ok := p.badWords[word]
-	return ok
-}
-
 func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
-	message := post.Message
-	words := strings.Split(message, " ")
-	for i, word := range words {
-		if p.WordIsBad(word) {
-			if p.RejectPosts {
-				return nil, "Profane word not allowed: " + word
-			}
-			words[i] = strings.Repeat(p.CensorCharacter, len(word))
+	// Check if channel is the forbidden channel
+	channel, err := p.API.GetChannel(post.ChannelId)
+	if err != nil {
+		p.API.LogError("Failed to find channel in post")
+		return nil, ""
+	}
+	if channel.Name != p.Channel {
+		return post, ""
+	}
+
+	// Check if the user is allowed
+	user, err := p.API.GetUser(post.UserId)
+	if err != nil {
+		p.API.LogError("Failed to find user in post")
+		return nil, ""
+	}
+
+	allowedUsers := strings.Split(p.AllowedUsers, " ")
+	for _, allowedUser := range allowedUsers {
+		if allowedUser == user.Username {
+			return nil, ""
 		}
 	}
 
-	post.Message = strings.Join(words, " ")
-	return post, ""
+	p.API.SendEphemeralPost(post.UserId, &model.Post{
+		ChannelId:	post.ChannelId,
+		Message:	"You are not allowed to post in this channel",
+		Props: map[string]interface{}{
+			"sent_by_plugin": true,
+		},
+	})
+	return nil, "You are not allowed to post in this channel"
 }
 
 func (p *Plugin) MessageWillBePosted(c *plugin.Context, post *model.Post) (*model.Post, string) {

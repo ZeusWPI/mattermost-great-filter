@@ -1,7 +1,7 @@
 {
-  "id": "mattermost-profanity-filter",
-  "name": "Profanity Filter",
-  "description": "For filtering out naughty words.",
+  "id": "mattermost-great-filter",
+  "name": "The Great Filter",
+  "description": "For filtering out messages",
   "version": "0.1.1",
   "server": {
       "executables": {
@@ -13,18 +13,19 @@
   "settings_schema": {
     "settings": [
       {
-        "key": "RejectPosts",
-        "display_name": "Reject Posts",
-        "type": "bool",
-        "help_text": "If set the plugin will reject posts containing profanity instead of censoring."
+        "key": "Channel",
+        "display_name": "Channel to reject messages",
+        "type": "text",
+        "help_text": "Channel to reject messages",
+        "default": "town-square"
       },
       {
-        "key": "CensorCharacter",
-        "display_name": "Censor Character",
+        "key": "AllowedUsers",
+        "display_name": "Allowed users, separated by spaces",
         "type": "text",
-        "help_text": "The character(s) to use to censor profanity. Censored words' letters will be replaced with this character. Note that markdown will be interpreted. You can escape markdown character with a backslash. For using * you type \\*.",
-        "placeholder": "Ex. \\*",
-        "default": "\\*"
+        "help_text": "A list of allowed users",
+        "placeholder": "redfast00",
+        "default": "redfast00"
       }
     ],
     "header": "",
