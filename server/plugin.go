@@ -11,7 +11,7 @@ import (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	Channel     string
+	Channel      string
 	AllowedUsers string
 }
 
@@ -56,8 +56,8 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 	}
 
 	p.API.SendEphemeralPost(post.UserId, &model.Post{
-		ChannelId:	post.ChannelId,
-		Message:	"You are not allowed to post in this channel",
+		ChannelId: post.ChannelId,
+		Message:   "You are not allowed to post in this channel",
 		Props: map[string]interface{}{
 			"sent_by_plugin": true,
 		},
@@ -71,4 +71,17 @@ func (p *Plugin) MessageWillBePosted(c *plugin.Context, post *model.Post) (*mode
 
 func (p *Plugin) MessageWillBeUpdated(c *plugin.Context, newPost *model.Post, _ *model.Post) (*model.Post, string) {
 	return p.FilterPost(newPost)
+}
+
+func (p *Plugin) UserHasLeftChannel(c *plugin.Context, channelMember *model.ChannelMember, actor *model.User) {
+	if actor == nil {
+		// User removed themselves from the channel
+		return
+	}
+	p.API.CreatePost(&model.Post{
+		UserId:    actor.Id,
+		ChannelId: channelMember.ChannelId,
+		Message:   "[BOT] I just kicked someone from the channel",
+	})
+
 }
