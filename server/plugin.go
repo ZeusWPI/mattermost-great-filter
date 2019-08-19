@@ -1,6 +1,7 @@
 package main
 
 import (
+        "fmt"
 	"net/http"
 	"strings"
 
@@ -78,10 +79,18 @@ func (p *Plugin) UserHasLeftChannel(c *plugin.Context, channelMember *model.Chan
 		// User removed themselves from the channel
 		return
 	}
+
+        kickedUser, err := p.API.GetUser(channelMember.UserId);
+        if err != nil {
+                p.API.LogError("Failed to find user")
+                return
+        }
+
+        msg := fmt.Sprintf("[BOT] I just kicked @%s from the channel", kickedUser.Username);
 	p.API.CreatePost(&model.Post{
 		UserId:    actor.Id,
 		ChannelId: channelMember.ChannelId,
-		Message:   "[BOT] I just kicked someone from the channel",
+		Message:   msg,
 	})
 
 }
