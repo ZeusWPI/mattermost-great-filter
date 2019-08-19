@@ -74,7 +74,7 @@ func (p *Plugin) MessageWillBeUpdated(c *plugin.Context, newPost *model.Post, _ 
 }
 
 func (p *Plugin) UserHasLeftChannel(c *plugin.Context, channelMember *model.ChannelMember, actor *model.User) {
-	if actor == nil {
+	if actor == nil || channelMember.UserId == actor.Id {
 		// User removed themselves from the channel
 		return
 	}
