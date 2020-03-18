@@ -1,8 +1,8 @@
 {
-  "id": "mattermost-great-filter",
-  "name": "The Great Filter",
+  "id": "mattermost-great-filter-mehmet",
+  "name": "The Great Filter Mehmet Edition",
   "description": "For filtering out messages",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "server": {
       "executables": {
           "linux-amd64": "server/dist/plugin-linux-amd64",
