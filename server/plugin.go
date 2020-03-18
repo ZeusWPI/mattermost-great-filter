@@ -12,8 +12,9 @@ import (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	Channel      string
-	AllowedUsers string
+	Channel         string
+	AllowedUsers    string
+	ChannelNoUpdate string
 }
 
 func main() {
@@ -38,6 +39,15 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 		p.API.LogError("Failed to find channel in post")
 		return nil, ""
 	}
+	if strings.Contains(post.Message, "updated the channel header") {
+		noUpdateChannels := strings.Split(p.ChannelNoUpdate, " ")
+		for _, noUpdateChannel := range noUpdateChannels {
+			if noUpdateChannel == channel.Name {
+				return nil, "You are not allowed to post message updates in this channel"
+			}
+		}
+	}
+
 	if channel.Name != p.Channel {
 		return post, ""
 	}

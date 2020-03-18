@@ -2,7 +2,7 @@
   "id": "mattermost-great-filter",
   "name": "The Great Filter",
   "description": "For filtering out messages",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "server": {
       "executables": {
           "linux-amd64": "server/dist/plugin-linux-amd64",
@@ -26,6 +26,14 @@
         "help_text": "A list of allowed users",
         "placeholder": "redfast00",
         "default": "redfast00"
+      },
+      {
+        "key": "ChannelNoUpdate",
+        "display_name": "Channels to block channel header updates in, separated by spaces",
+        "type": "text",
+        "help_text": "A list of channels not to update",
+        "placeholder": "mumble",
+        "default": "mumble"
       }
     ],
     "header": "",
