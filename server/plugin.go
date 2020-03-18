@@ -1,7 +1,7 @@
 package main
 
 import (
-        "fmt"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -44,6 +44,7 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 
 	// Check if the user is allowed
 	user, err := p.API.GetUser(post.UserId)
+
 	if err != nil {
 		p.API.LogError("Failed to find user in post")
 		return nil, ""
@@ -80,13 +81,13 @@ func (p *Plugin) UserHasLeftChannel(c *plugin.Context, channelMember *model.Chan
 		return
 	}
 
-        kickedUser, err := p.API.GetUser(channelMember.UserId);
-        if err != nil {
-                p.API.LogError("Failed to find user")
-                return
-        }
+	kickedUser, err := p.API.GetUser(channelMember.UserId)
+	if err != nil {
+		p.API.LogError("Failed to find user")
+		return
+	}
 
-        msg := fmt.Sprintf("[BOT] I just kicked @%s from the channel", kickedUser.Username);
+	msg := fmt.Sprintf("[BOT] I just kicked @%s from the channel", kickedUser.Username)
 	p.API.CreatePost(&model.Post{
 		UserId:    actor.Id,
 		ChannelId: channelMember.ChannelId,
