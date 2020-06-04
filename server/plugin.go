@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -73,25 +72,4 @@ func (p *Plugin) MessageWillBePosted(c *plugin.Context, post *model.Post) (*mode
 
 func (p *Plugin) MessageWillBeUpdated(c *plugin.Context, newPost *model.Post, _ *model.Post) (*model.Post, string) {
 	return p.FilterPost(newPost)
-}
-
-func (p *Plugin) UserHasLeftChannel(c *plugin.Context, channelMember *model.ChannelMember, actor *model.User) {
-	if actor == nil || channelMember.UserId == actor.Id {
-		// User removed themselves from the channel
-		return
-	}
-
-	kickedUser, err := p.API.GetUser(channelMember.UserId)
-	if err != nil {
-		p.API.LogError("Failed to find user")
-		return
-	}
-
-	msg := fmt.Sprintf("[BOT] I just kicked @%s from the channel", kickedUser.Username)
-	p.API.CreatePost(&model.Post{
-		UserId:    actor.Id,
-		ChannelId: channelMember.ChannelId,
-		Message:   msg,
-	})
-
 }
