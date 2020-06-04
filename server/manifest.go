@@ -5,5 +5,5 @@ var manifest = struct {
 	Version string
 }{
 	Id:      "mattermost-great-filter-mehmet",
-	Version: "0.1.3",
+	Version: "0.1.4",
 }
