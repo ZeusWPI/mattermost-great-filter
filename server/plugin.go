@@ -5,17 +5,86 @@ import (
 	"net/http"
 	"strings"
 	"regexp"
+	"sync"
+	"reflect"
 
-	"github.com/mattermost/mattermost-server/model"
-	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/pkg/errors"
 )
+
+type configuration struct {
+		Channel string
+		AllowedUsers string
+		ChannelNoUpdate string
+}
+
+// Clone shallow copies the configuration. Your implementation may require a deep copy if
+// your configuration has reference types.
+func (c *configuration) Clone() *configuration {
+	var clone = *c
+	return &clone
+}
+
+// getConfiguration retrieves the active configuration under lock, making it safe to use
+// concurrently. The active configuration may change underneath the client of this method, but
+// the struct returned by this API call is considered immutable.
+func (p *Plugin) getConfiguration() *configuration {
+	p.configurationLock.RLock()
+	defer p.configurationLock.RUnlock()
+
+	if p.configuration == nil {
+		return &configuration{}
+	}
+
+	return p.configuration
+}
+
+// setConfiguration replaces the active configuration under lock.
+//
+// Do not call setConfiguration while holding the configurationLock, as sync.Mutex is not
+// reentrant. In particular, avoid using the plugin API entirely, as this may in turn trigger a
+// hook back into the plugin. If that hook attempts to acquire this lock, a deadlock may occur.
+//
+// This method panics if setConfiguration is called with the existing configuration. This almost
+// certainly means that the configuration was modified without being cloned and may result in
+// an unsafe access.
+func (p *Plugin) setConfiguration(configuration *configuration) {
+	p.configurationLock.Lock()
+	defer p.configurationLock.Unlock()
+
+	if configuration != nil && p.configuration == configuration {
+		// Ignore assignment if the configuration struct is empty. Go will optimize the
+		// allocation for same to point at the same memory address, breaking the check
+		// above.
+		if reflect.ValueOf(*configuration).NumField() == 0 {
+			return
+		}
+
+		panic("setConfiguration called with the existing configuration")
+	}
+
+	p.configuration = configuration
+}
+
+// OnConfigurationChange is invoked when configuration changes may have been made.
+func (p *Plugin) OnConfigurationChange() error {
+	var configuration = new(configuration)
+
+	// Load the public configuration fields from the Mattermost server configuration.
+	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
+		return errors.Wrap(err, "failed to load plugin configuration")
+	}
+
+	p.setConfiguration(configuration)
+	return nil
+}
 
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	Channel         string
-	AllowedUsers    string
-	ChannelNoUpdate string
+	configurationLock        sync.RWMutex
+	configuration *configuration
 }
 
 func main() {
@@ -34,6 +103,7 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 }
 
 func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
+	configuration := p.getConfiguration()
 	// Check if channel is the forbidden channel
 	channel, err := p.API.GetChannel(post.ChannelId)
 	if err != nil {
@@ -41,7 +111,7 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 		return nil, ""
 	}
 	if strings.Contains(post.Message, "updated the channel header") {
-		noUpdateChannels := strings.Split(p.ChannelNoUpdate, " ")
+		noUpdateChannels := strings.Split(configuration.ChannelNoUpdate, " ")
 		for _, noUpdateChannel := range noUpdateChannels {
 			if noUpdateChannel == channel.Name {
 				return nil, "You are not allowed to post message updates in this channel"
@@ -74,20 +144,37 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 		post.Message = ssm
 		return post, ""
 	}
-
-	if channel.Name != p.Channel {
-		return post, ""
-	}
-
 	// Check if the user is allowed
 	user, err := p.API.GetUser(post.UserId)
-
 	if err != nil {
 		p.API.LogError("Failed to find user in post")
 		return nil, ""
 	}
+	allowedUsers := strings.Split(configuration.AllowedUsers, " ")
 
-	allowedUsers := strings.Split(p.AllowedUsers, " ")
+	if channel.Name == "bestuur-intern"  {
+		for _, allowedUser := range allowedUsers {
+			if allowedUser == user.Username {
+				return nil, ""
+			}
+		}
+		if strings.HasPrefix(post.Message, "!") {
+			return nil, ""
+		}
+		p.API.SendEphemeralPost(post.UserId, &model.Post{
+			ChannelId: post.ChannelId,
+			Message:   "This is the internal channel of the board, so only the board can post in it. If you think it's appropriate, override by starting your message with '!'",
+			Props: map[string]interface{}{
+				"sent_by_plugin": true,
+			},
+		})
+		return nil, "This is the internal channel of the board, so only the board can post in it. If you think it's appropriate, override by starting your message with '!'"
+	}
+
+	if channel.Name != configuration.Channel {
+		return post, ""
+	}
+
 	for _, allowedUser := range allowedUsers {
 		if allowedUser == user.Username {
 			return nil, ""
