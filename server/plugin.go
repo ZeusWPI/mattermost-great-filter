@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"regexp"
 
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
@@ -46,6 +47,32 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 				return nil, "You are not allowed to post message updates in this channel"
 			}
 		}
+	}
+
+	if channel.Name == "ssm" {
+		reg, err := regexp.Compile("[^a-z0-9 ]")
+    if err != nil {
+        p.API.LogError("Failed to compile regex")
+    }
+    ssm := reg.ReplaceAllString(post.Message, "")
+		if ssm == "" {
+			return nil, "NO"
+		}
+		post.Message = ssm
+		return post, ""
+	}
+
+	if channel.Name == "ssm-v0" {
+		reg, err := regexp.Compile("[^A-Z0-9! ]")
+    if err != nil {
+        p.API.LogError("Failed to compile regex")
+    }
+    ssm := reg.ReplaceAllString(post.Message, "")
+		if ssm == "" {
+			return nil, "NO"
+		}
+		post.Message = ssm
+		return post, ""
 	}
 
 	if channel.Name != p.Channel {
